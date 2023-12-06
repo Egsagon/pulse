@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pulse</title>
+    <script src="client/jquery.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Poppins';
+            font-style: normal;
+            font-weight: 400;
+            src: url(client/poppins.woff2) format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        body {
+            position: absolute;
+            width: 100%;
+            min-height: 100%;
+            margin: 0;
+            background-color: #0e0e0f;
+            color: #fff;
+            font-family: Poppins;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #head,
+        #play {
+            display: flex;
+            width: 600px;
+        }
+
+        #head > *,
+        #play > * {
+            background-color: #ffbb00;
+            margin: 5px;
+            padding: 20px;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            transition: all ease-in-out .3s;
+            color: #0e0e0f;
+        }
+
+        #head h1 {
+            width: unset;
+            color: #fff;
+            justify-content: left;
+        }
+
+        #play button, #head h1 {
+            flex-grow: 1;
+        }
+
+        #play button:hover, #head label:hover {
+            background-color: #fff;
+            cursor: pointer;
+        }
+
+        #head {
+            margin-top: 50px;
+        }
+
+        table {
+            margin-bottom: 50px;
+            width: 595px;
+            margin-top: 2.5px;
+        }
+
+        table tbody tr:first-child {
+            text-align: left;
+        }
+
+        table tbody td {
+            padding: 5px;
+        }
+
+        table th {
+            background-color: #ffbb00;
+            color: #0e0e0f;
+        }
+
+        table th:first-child,
+        table td:first-child {
+            border-right: 8px solid #0e0e0f;
+        }
+
+        table tbody tr:nth-child(even) {
+            background-color: #000;
+        }
+
+        table tbody tr {
+            cursor: pointer;
+            transition: all ease-in-out .3s;
+        }
+
+        table tbody tr:hover {
+            background-color: #ffbb00;
+            color: #0e0e0f;
+        }
+
+        #play > label {
+            padding: 0px !important;
+        }
+
+        #sel {
+            border: none;
+            background: none;
+            cursor: pointer;
+            margin: 0px;
+            padding: 40px !important;
+            appearance: none;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        
+        #head label::after {
+            position: absolute;
+            display: none;
+            content: '';
+            width: 40px;
+            height: 40px;
+            border: 4px solid #0e0e0f;
+            border-radius: 50%;
+            border-bottom-color: transparent;
+            animation: spin infinite linear 3s;
+        }
+
+        #head label.ok {
+            background-color: #adff2f;
+        }
+
+        #head label.loading::after {
+            display: block;
+        }
+
+        @keyframes spin {
+            from { rotate: 0deg    }
+            from { rotate: -360deg }
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="head">
+        <h1>Pulse</h1>
+
+        <label for="key">#
+            <input type="file" id="key" class="hidden">
+        </label>
+
+        <label for="sel">
+            <select id="sel" name="sel">
+                <option value="">Any</option>
+            </select>
+        </label>
+
+        <label id="submit">OK</label>
+    </div>
+
+    <div id="play" class="hidden">
+        <button>Play</button>
+        <button>Random</button>
+    </div>
+
+    <table class="hidden">
+        <thead><tr><th>UUID</th><th>EXT</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        read = async file => {
+            reader = new FileReader()
+            return new Promise((resolve, reject) => {
+                reader.onload = () => {resolve(reader.result)}
+                reader.onerror = reject
+                reader.readAsText(file)
+            })
+        }
+
+        $('#key').on('change', async ev => {
+            $('label[for="key"]').addClass('loading')
+            key = await read($('#key').prop('files')[0])
+            $.post('/key', key, res => {
+                $('label[for="key"]').removeClass('loading')
+                if (res === 'ok') $('label[for="key"]').addClass('ok')
+            })
+        });
+
+        $('#submit').on('click', ev => {
+            $.getJSON('/search?ct=' + $('#sel').val(), res => {
+                console.log(res)
+
+                $.each(res, (i, el) => {
+                    $('table tbody').append(
+                        `<tr onclick="window.location='/get/${el[0]}'"><td>${el[0]}</td><td>${el[1]}</td></tr>`
+                    )
+                })
+
+                $('#play').removeClass('hidden')
+                $('table').removeClass('hidden')
+            })
+        })
+
+        $.get('/haskey', res => {
+            if (res === '1') {
+                $('label[for="key"]').addClass('ok')
+            }
+        })
+    </script>
+</body>
+</html>
