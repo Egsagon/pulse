@@ -17,10 +17,15 @@ ffe.save_key_pair(
   private_key = Path('private.pem')
 )
 ```
-3. Encrypt your files in the `pulse/data/` directory and register them in a database:
+2. Prepare for encryption. Remux videos if needed (browsers are stricter than normal players):
 ```sh
 mkdir pulse/data/
 ```
+```sh
+# For each video file
+ffmpeg -i video.mp4 -c copy remuxed_video.mp4
+```
+4. Encrypt your files in the `pulse/data/` directory and register them in a database:
 ```py
 import uuid
 import sqlite3
@@ -28,17 +33,21 @@ import mimetypes
 from pathlib import Path
 import fast_file_encryption as ffe
 
+ENCRYPTION_KEY = './public.pem'
 INPUT = Path('path/to/your/files')
 OUTPUT = Path('pulse/data')
 
 BASE = sqlite3.connect('pulse/base.db')
 BASE.execute('CREATE TABLE IF NOT EXISTS main (uuid, type, ext)')
 
+encryptor = ffe.Encryptor(ffe.read_public_key(Path(ENCRYPTION_KEY)))
+
 for file in INPUT.glob('*')
   fid = uuid.uuid4().hex
   ext = file.split('.')[-1]
   mime = mimetypes.types_map[ '.' + ext ]
   BASE.execute('INSERT INTO main VALUES (?, ?, ?)', (fid, mime, ext))
+  encryptor.copy_encrypted( file, OUTPUT / fid + '.pulse' )
 
 BASE.commit()
 BASE.close()
