@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <title>Pulse</title>
-    <script src="client/jquery.js"></script>
+    <link rel="shortcut icon" href="/client/src/logo.svg">
+    <script src="/client/src/jquery.js"></script>
     <style>
         @font-face {
             font-family: 'Poppins';
             font-style: normal;
             font-weight: 400;
-            src: url(client/poppins.woff2) format('woff2');
+            src: url(client/src/poppins.woff2) format('woff2');
             unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+        }
+
+        svg {
+            width: 30px;
+            height: 30px;
         }
 
         body {
@@ -52,13 +58,15 @@
             width: unset;
             color: #fff;
             justify-content: left;
+            letter-spacing: 3px;
         }
 
         #play button, #head h1 {
             flex-grow: 1;
         }
 
-        #play button:hover, #head label:hover {
+        #play button:hover,
+        #head label:hover {
             background-color: #fff;
             cursor: pointer;
         }
@@ -138,10 +146,43 @@
             background-color: #adff2f;
         }
 
+        #head label.ko {
+            background-color: #ff1493;
+        }
+
         #head label.loading::after {
             display: block;
         }
 
+        body::after{
+            position: fixed;
+            font-size: 10px;
+            color: gray;
+            content: 'Pulse - Egsagon, 2023';
+            left: 0;
+            padding: 10px;
+            bottom: 0;
+        }
+
+        th span {
+            color: gray;
+            vertical-align: center;
+        }
+
+        #err {
+            background-color: #ff1493;
+            padding: 10px;
+            width: 570px;
+            margin-bottom: -45px;
+            text-align: center;
+        }
+
+        #err span {
+            font-size: 30px;
+            letter-spacing: 3px;
+            margin-right: 10px;
+        }
+        
         @keyframes spin {
             from { rotate: 0deg    }
             from { rotate: -360deg }
@@ -149,30 +190,43 @@
     </style>
 </head>
 <body>
+    <div id="err" class="{{ 'hidden' if not error }}">
+        <p><span>ERROR</span> {{ error }}</p>
+    </div>
     
     <div id="head">
-        <h1>Pulse</h1>
+        <h1>PULSE</h1>
 
-        <label for="key">#
+        <label for="key" class="{{ 'ok' if haskey }}">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="96px" height="96px">
+                <path d="M 7 5 C 3.1545455 5 0 8.1545455 0 12 C 0 15.845455 3.1545455 19 7 19 C 9.7749912 19 12.089412 17.314701 13.271484 15 L 16 15 L 16 18 L 22 18 L 22 15 L 24 15 L 24 9 L 23 9 L 13.287109 9 C 12.172597 6.6755615 9.8391582 5 7 5 z M 7 7 C 9.2802469 7 11.092512 8.4210017 11.755859 10.328125 L 11.988281 11 L 22 11 L 22 13 L 20 13 L 20 16 L 18 16 L 18 13 L 12.017578 13 L 11.769531 13.634766 C 11.010114 15.575499 9.1641026 17 7 17 C 4.2454545 17 2 14.754545 2 12 C 2 9.2454545 4.2454545 7 7 7 z M 7 9 C 5.3549904 9 4 10.35499 4 12 C 4 13.64501 5.3549904 15 7 15 C 8.6450096 15 10 13.64501 10 12 C 10 10.35499 8.6450096 9 7 9 z M 7 11 C 7.5641294 11 8 11.435871 8 12 C 8 12.564129 7.5641294 13 7 13 C 6.4358706 13 6 12.564129 6 12 C 6 11.435871 6.4358706 11 7 11 z"/>
+            </svg>
             <input type="file" id="key" class="hidden">
         </label>
 
         <label for="sel">
             <select id="sel" name="sel">
                 <option value="">Any</option>
+                {% for item in types %}
+                    <option value="{{ item[0] }}">{{ item[0].upper() }}</option>
+                {% endfor %}
             </select>
         </label>
 
-        <label id="submit">OK</label>
+        <label id="submit">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" width="100px" height="100px">
+                <path d="M 21 3 C 11.601563 3 4 10.601563 4 20 C 4 29.398438 11.601563 37 21 37 C 24.355469 37 27.460938 36.015625 30.09375 34.34375 L 42.375 46.625 L 46.625 42.375 L 34.5 30.28125 C 36.679688 27.421875 38 23.878906 38 20 C 38 10.601563 30.398438 3 21 3 Z M 21 7 C 28.199219 7 34 12.800781 34 20 C 34 27.199219 28.199219 33 21 33 C 13.800781 33 8 27.199219 8 20 C 8 12.800781 13.800781 7 21 7 Z"/>
+            </svg>
+        </label>
     </div>
 
     <div id="play" class="hidden">
-        <button>Play</button>
-        <button>Random</button>
+        <button id="start">Play</button>
+        <button id="rand">Random</button>
     </div>
 
     <table class="hidden">
-        <thead><tr><th>UUID</th><th>EXT</th></tr></thead>
+        <thead><tr><th>UUID</th><th>TYPE</th></tr></thead>
         <tbody></tbody>
     </table>
 
@@ -186,34 +240,44 @@
             })
         }
 
+        display = res => {
+            $('table tbody').empty()
+            $.each(res, (i, el) => {$('table tbody').append(
+                `<tr onclick="window.location='/get/${el[0]}'"><td>${el[0]}</td><td>${el[1]}</td></tr>`
+            )})
+            $('table th:first-child').html(`UUID <span>${res.length} items</span>`)
+            $('#play').removeClass('hidden')
+            $('table').removeClass('hidden')
+        }
+
         $('#key').on('change', async ev => {
-            $('label[for="key"]').addClass('loading')
+            label = $('label[for="key"]')
+            label.addClass('loading')
             key = await read($('#key').prop('files')[0])
             $.post('/key', key, res => {
-                $('label[for="key"]').removeClass('loading')
-                if (res === 'ok') $('label[for="key"]').addClass('ok')
+                label.removeClass('loading ok ko')
+                label.addClass(res === '1' ? 'ok' : 'ko')
             })
         });
 
         $('#submit').on('click', ev => {
-            $.getJSON('/search?ct=' + $('#sel').val(), res => {
-                console.log(res)
-
-                $.each(res, (i, el) => {
-                    $('table tbody').append(
-                        `<tr onclick="window.location='/get/${el[0]}'"><td>${el[0]}</td><td>${el[1]}</td></tr>`
-                    )
-                })
-
-                $('#play').removeClass('hidden')
-                $('table').removeClass('hidden')
+            $('#submit').addClass('loading')
+            $.getJSON('/search?ext=' + $('#sel').val(), res => {
+                display(res)
+                $('#submit').removeClass('loading')
             })
         })
 
-        $.get('/haskey', res => {
-            if (res === '1') {
-                $('label[for="key"]').addClass('ok')
-            }
+        $('#start').on('click', ev => {
+            window.location = '/get/' + $('tr > td:first-child')[0].innerHTML
+        })
+
+        $('#rand').on('click', ev => {
+            $('#submit').addClass('loading')
+            $.get('/rand', res => {
+                display(res)
+                $('#submit').removeClass('loading')
+            })
         })
     </script>
 </body>
