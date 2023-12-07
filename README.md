@@ -17,15 +17,14 @@ ffe.save_key_pair(
   private_key = Path('private.pem')
 )
 ```
-2. Prepare for encryption. Remux videos if needed (browsers are stricter than normal players):
+2. Prepare files for encryption. Remux videos if needed (browsers are stricter than normal players):
 ```sh
-mkdir pulse/data/
-```
-```sh
-# For each video file
 ffmpeg -i video.mp4 -c copy remuxed_video.mp4
 ```
 4. Encrypt your files in the `pulse/data/` directory and register them in a database:
+```sh
+mkdir pulse/data/
+```
 ```py
 import uuid
 import sqlite3
