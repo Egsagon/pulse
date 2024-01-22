@@ -67,7 +67,7 @@
 
         #play button:hover,
         #head label:hover {
-            background-color: #fff;
+            background-color: #fff !important;
             cursor: pointer;
         }
 
@@ -115,15 +115,6 @@
 
         #play > label {
             padding: 0px !important;
-        }
-
-        #sel {
-            border: none;
-            background: none;
-            cursor: pointer;
-            margin: 0px;
-            padding: 40px !important;
-            appearance: none;
         }
 
         .hidden {
@@ -182,7 +173,115 @@
             letter-spacing: 3px;
             margin-right: 10px;
         }
+
+        #sel {
+            display: flex;
+            align-items: center;
+            width: calc(590px - 4px * 2);
+            border: 4px solid #ffbb00;
+            margin: 0;
+            overflow: hidden;
+            height: 0;
+            border-width: 0 4px;
+            transition: all ease-in-out .4s;
+        }
+
+        #sel > div {
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        #sel .groups {
+            flex-grow: 1;
+            display: grid;
+            align-items: start !important;
+            height: 222px;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+
+        #sel i {
+            background-color: gray;
+            width: 2px;
+            height: 120px;
+            border-radius: 1px;
+            margin: 20px 5px;
+        }
+
+        #sel button {
+            color: #fff;
+            margin: 3px 2px;
+            padding: 10px 5px;
+            margin-bottom: 0;
+            border: none;
+            background-color: #0e0e0f;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 90px;
+            transition: all ease-in-out .3s;
+        }
+
+        #sel .groups button {
+            width: unset;
+        }
+
+        #sel button:last-child {
+            margin-bottom: 2.5px;
+        }
+
+        #sel button:hover {
+            background-color: #ffbb00;
+            color: #0e0e0f;
+        }
+
+        #sel button::before {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            content: attr(data-op);
+            padding: 2px;
+            text-align: end;
+            color: #0e0e0f;
+            width: 20px;
+            height: 20px;
+            background-color: #ffbb00;
+            border-radius: 50%;
+            margin-right: 10px;
+            transition: all ease-in-out .3s;
+        }
+
+        #sel button:hover::before {
+            color: #ffbb00;
+            background-color: #0e0e0f;
+        }
         
+        label[for='sel'].on {
+            background-color: #fff !important;
+        }
+
+        #sel.on {
+            height: 250px;
+            border-width: 4px 4px;
+            margin: 5px;
+        }
+        #sel .groups.empty {
+            display: flex !important;
+            justify-content: center;
+        }
+
+        #sel .groups.empty::after {
+            content: 'No groups yet';
+            color: gray;
+        }
+
+        #submit.failed {
+            background-color: #ff1493;
+        }
+
         @keyframes spin {
             from { rotate: 0deg    }
             from { rotate: -360deg }
@@ -205,12 +304,10 @@
         </label>
 
         <label for="sel">
-            <select id="sel" name="sel">
-                <option value="">Any</option>
-                {% for item in types %}
-                    <option value="{{ item[0] }}">{{ item[0].upper() }}</option>
-                {% endfor %}
-            </select>
+            <?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+            <svg width="800px" height="800px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M2.73224 5.32873C1.58574 4.03892 2.50136 2 4.22706 2H19.7734C21.4991 2 22.4147 4.03893 21.2682 5.32873L15.0002 12.3802V21C15.0002 21.3466 14.8208 21.6684 14.5259 21.8507C14.2311 22.0329 13.863 22.0494 13.553 21.8944L9.553 19.8944C9.21421 19.725 9.00021 19.3788 9.00021 19V12.3802L2.73224 5.32873ZM19.7734 4H4.22706L10.7476 11.3356C10.9103 11.5187 11.0002 11.7551 11.0002 12V18.382L13.0002 19.382V12C13.0002 11.7551 13.0901 11.5187 13.2528 11.3356L19.7734 4Z" fill="#000000"/>
+            </svg>
         </label>
 
         <label id="submit">
@@ -218,6 +315,21 @@
                 <path d="M 21 3 C 11.601563 3 4 10.601563 4 20 C 4 29.398438 11.601563 37 21 37 C 24.355469 37 27.460938 36.015625 30.09375 34.34375 L 42.375 46.625 L 46.625 42.375 L 34.5 30.28125 C 36.679688 27.421875 38 23.878906 38 20 C 38 10.601563 30.398438 3 21 3 Z M 21 7 C 28.199219 7 34 12.800781 34 20 C 34 27.199219 28.199219 33 21 33 C 13.800781 33 8 27.199219 8 20 C 8 12.800781 13.800781 7 21 7 Z"/>
             </svg>
         </label>
+    </div>
+
+    <div id="sel">
+        <div class="exts">
+            {% for item in types %}
+                <button data-value="{{ item[0] }}" data-op="~">{{ item[0].upper() }}</button>
+            {% endfor %}
+        </div>
+        <i></i>
+
+        <div class="groups {{ 'empty' if groups|length == 0 }}">
+            {% for item in groups %}
+                <button data-value="${{ item }}" data-op="~">{{ item }}</button>
+            {% endfor %}
+        </div>
     </div>
 
     <div id="play" class="hidden">
@@ -248,6 +360,8 @@
             $('table th:first-child').html(`UUID <span>${res.length} items</span>`)
             $('#play').removeClass('hidden')
             $('table').removeClass('hidden')
+
+            $('#submit').toggleClass('failed', res.length == 0)
         }
 
         $('#key').on('change', async ev => {
@@ -262,9 +376,19 @@
 
         $('#submit').on('click', ev => {
             $('#submit').addClass('loading')
-            $.getJSON('/search?ext=' + $('#sel').val(), res => {
+
+            query = ''
+            $('#sel button').each((i, el) => {
+                if (el.dataset.op !== '~') {
+                    query += el.dataset.op + el.dataset.value
+                }
+            })
+
+            $.getJSON('/search?ext=' + query, res => {
                 display(res)
+
                 $('#submit').removeClass('loading')
+                $('label.on').removeClass('on')
             })
         })
 
@@ -278,6 +402,16 @@
                 display(res)
                 $('#submit').removeClass('loading')
             })
+        })
+    
+        $('#sel button').on('click', ev => {
+            set = ev.target.dataset
+            set.op = '~+-'[('~+-'.indexOf(set.op) + 1) % 3]
+        })
+
+        $('label[for="sel"]').on('click', ev => {
+            $('label[for="sel"]').toggleClass('on')
+            $('#sel').toggleClass('on')
         })
     </script>
 </body>

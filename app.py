@@ -1,3 +1,4 @@
+import re
 import json
 import flask
 import random
@@ -5,12 +6,13 @@ import sqlite3
 from pathlib import Path
 from flask_caching import Cache
 import fast_file_encryption as ffe
+from sqlfilter import build_sql_filter
 
 decryptor: ffe.Decryptor = None
 app = flask.Flask(__name__, static_folder = 'client', template_folder = 'client')
 
 batch: list[tuple[str, str]] = None
-cbatch: dict[str, tuple[str, int]] = None
+cbatch: dict[str, tuple[str, int, str]] = None
 
 with open('config.json', 'r') as file:
     config: dict = json.load(file)
@@ -25,17 +27,35 @@ redirect_errors = {
     'd': 'No decryptor ready.'
 }
 
+base = sqlite3.connect('base.db', check_same_thread = False)
+
+def decrypt_group(grp: str) -> list[str]:
+    # Decrypt a raw group list.
+    
+    pass
+    
+
+def get_groups() -> list[str]:
+    
+    rgrps = base.execute('SELECT DISTINCT groups FROM main').fetchall()
+    
+    groups = set()
+    for raw in rgrps:
+        groups.update(json.loads(raw[0]))
+    
+    return groups
+
 @app.route('/')
 def home():
-    base = sqlite3.connect('base.db')
     types = base.execute('SELECT DISTINCT ext FROM main').fetchall()
-    base.close()
+    groups = get_groups()
     
     error = '?err=' in flask.request.url
     
     return flask.render_template('index.jinja',
         haskey = bool(decryptor),
         types = list(set(types)),
+        groups = list(groups),
         error = redirect_errors.get(flask.request.args.get('err'),
                                     'Unknown error') if error else None
     )
@@ -67,14 +87,11 @@ def decrypt(uuid: str):
 @app.route('/search')
 def search():
     global batch, cbatch
-    base = sqlite3.connect('base.db')
-    e = flask.request.args.get('ext')
-    
-    if e: batch = base.execute('SELECT * FROM main WHERE ext = ?', [e]).fetchall()
-    else: batch = base.execute('SELECT * FROM main').fetchall()
-    
-    cbatch = {u: (t, i) for i, (u, t, e) in enumerate(batch)}
-    base.close()
+    ext = flask.request.url.split('ext=')[1]
+    sql = build_sql_filter(ext)
+    print('Executing sql:', sql)
+    batch = base.execute(sql).fetchall()
+    cbatch = {u: (t, i, json.loads(g)) for i, (u, t, e, g) in enumerate(batch)}
     return flask.jsonify(batch)
 
 @app.route('/get/<uuid>')
@@ -82,12 +99,18 @@ def get_file(uuid: str):
     if not batch: return flask.redirect('/?err=b')
     if not decryptor: return flask.redirect('/?err=d')
     
-    ctype, index = cbatch[uuid]
+    ctype, index, *_ = cbatch[uuid]
+    
+    groups = json.loads(base.execute('SELECT groups FROM main WHERE uuid = ?', [uuid]).fetchone()[0])
     
     return flask.render_template('page.jinja',
         uuid = uuid,
+        index = index,
         type = ctype,
         config = config,
+        groups = groups,
+        base_groups = get_groups(),
+        batch_length = len(batch),
         next = ('/get/' + batch[index + 1][0]) if index + 1 < len(batch) else '#',
         prev = ('/get/' + batch[index - 1][0]) if index > 0 else '#',
         src = '/raw/' + uuid
@@ -98,7 +121,7 @@ def randomize():
     global batch, cbatch
     assert batch
     random.shuffle(batch)
-    cbatch = {u: (t, i) for i, (u, t, e) in enumerate(batch)}
+    cbatch = {u: (t, i) for i, (u, t, *_) in enumerate(batch)}
     return flask.jsonify(batch)
 
 @app.route('/conf')
@@ -111,6 +134,22 @@ def update():
         file.write(json.dumps(config, indent = 4))
     
     return 'ok'
+
+@app.route('/group/<uuid>')
+def update_group(uuid: str):
+    # Update a group
+    value = json.loads(base.execute('SELECT groups FROM main WHERE uuid = ?', [uuid]).fetchone()[0])
+    
+    if addeable := flask.request.args.get('add'):
+        value.append(addeable)
+    
+    if deletable := flask.request.args.get('del'):
+        value.remove(deletable)
+    
+    print('updating', uuid, 'groups to', value)
+    base.execute('UPDATE main SET groups = ? WHERE uuid = ?', (json.dumps(value), uuid))
+    base.commit()
+    return flask.redirect('/get/' + uuid)
 
 if __name__ == '__main__':
     app.run( debug = True )

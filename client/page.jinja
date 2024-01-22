@@ -99,12 +99,22 @@
             display: none;
         }
 
-        #type {
+        #type, .group {
             padding: 8px;
             border-radius: 5px;
-            margin-left: 10px;
+            margin-left: 0px;
             background-color: #0e0e0f;
             color: #ffbb00;
+            cursor: pointer;
+        }
+
+        #type {
+            color: #464856;
+            cursor: not-allowed;
+        }
+
+        .group:hover {
+            background-color: #464856;
         }
 
         #menu > div {
@@ -170,17 +180,75 @@
             justify-content: center;
         }
 
+        #header h1 {
+            user-select: none;
+        }
+
         #main > * {
             max-width: 100% !important;
             max-height: calc(100vh - 80px) !important;
             height: auto;
             outline: none;
         }
+
+        #groups {
+            position: absolute;
+            top: 80px;
+            left: 10px;
+            background-color: #0e0e0f;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 100px);
+            border: 3px solid #ffbb00;
+            border-radius: 8px;
+            width: 200px;
+        }
+
+        #groups.hidden {
+            display: none !important;
+        }
+
+        .new-group {
+            background-color: red;
+        }
+
+        #groups .wrapper {
+            padding: 10px 30px;
+            margin-bottom: 20px;
+            overflow-y: auto;
+            border-bottom: 3px solid #ffbb00;
+        }
+
+        #group-new,
+        #group-save {
+            text-align: center;
+            margin: 20px;
+            margin-top: 0;
+        }
+
+        #group-save {
+            color: #0e0e0f;
+            background-color: #ffbb00;
+        }
+
+        #group-save:hover {
+            background-color: #464856;
+            color: #fff;
+        }
+
     </style>
 </head>
 <body>
     <div id="header">
-        <h1><a href="/">Pulse</a> <span>{{ uuid }}</span> <span id="type">{{ type }}</span></h1>
+        <h1>
+            <a href="/">Pulse</a>
+            <span>{{ index }} / {{ batch_length }}</span>
+            <span id="type">{{ type }}</span>
+            {% for group in groups %}
+                <span class="group"><a href="/group/{{ uuid }}?del={{ group }}">{{ group }}</a></span>
+            {% endfor %}
+            <span class="group" id="group-add">+</span>
+        </h1>
         <div id="config"></div>
         <div id="menu">
             <h2>Config</h2>
@@ -209,8 +277,43 @@
         <a href="{{ prev }}" id="k74"></a>
         <a href="{{ next }}" id="k76"></a>
     </div>
+
+    <div id="groups" class="hidden">
+        <div class="wrapper">
+            {% for group in base_groups | sort %}
+                <div>
+                    <input type="checkbox" id="group-ck-{{ group }}" data-value="{{ group }}">
+                    <label for="group-ck-{{ group }}">{{ group }}</label>
+                </div>
+            {% endfor %}
+        </div>
+        <span class="group" id="group-new">New group</span>
+        <span class="group" id="group-save">Save</span>
+    </div>
     
     <script>
+        subgroup = ev => {
+            group = prompt('Set a group name:')
+            if (!group) return
+
+            $('#groups .wrapper').append(`
+                <div class="new-group">
+                    <input type="checkbox" id="group-ck-${group}" data-value="${group}">
+                    <label for="group-ck-${group}">${group}</label>
+                </div>
+            `)
+        }
+
+        resq = urls => {
+            if (urls.length > 0) {
+                $.get(urls.pop()).done(res => resq(urls))
+            }
+
+            else {
+                setTimeout(() => location.reload(), 500)
+            }
+        }
+
         $('#config').on('click', () => {
             $('#config').toggleClass('open')
             $('#menu').toggleClass('open')
@@ -218,6 +321,8 @@
 
         $(document).on('keyup', ev => {
             document.querySelector('#links #k' + ev.which)?.click()
+
+            if (ev.which === 75) subgroup()
         })
 
         $('#save').on('click', () => {
@@ -231,6 +336,39 @@
                 if (res !== 'ok') return alert('Internal error')
                 window.location.reload()
             })
+        })
+
+        $('#group-add').on('click', () => {
+            $('#groups').toggleClass('hidden')
+            // Update groups checkboxes
+            $('#group input').each((i, el) => {
+                $(el).prop('checked', false)
+            })
+
+            {% for group in groups %}
+                $('#group-ck-{{ group }}').prop('checked', true)
+            {% endfor %}
+        })
+
+        $('#group-new').on('click', subgroup)
+
+        $('#group-save').on('click', () => {
+            
+            let current_groups = []
+            $('#header .group > a').each((i, el) => current_groups.push($(el).html()))
+
+            let urls = []
+
+            $('#groups input').each((i, el) => {
+                let checked = $(el).is(':checked')
+                let group = el.dataset.value
+
+                if (checked ^ current_groups.includes(group)) {
+                    urls.push(`/group/{{ uuid }}?${checked ? 'add' : 'del'}=${group}`)
+                }
+            })
+
+            resq(urls)
         })
 
         $('#main video').focus()
